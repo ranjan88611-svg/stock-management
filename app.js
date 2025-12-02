@@ -36,6 +36,7 @@ const boxCountInput = document.getElementById("boxCount");
 const piecesPerBoxInput = document.getElementById("piecesPerBox");
 const locationInput = document.getElementById("location");
 const pricePerBoxInput = document.getElementById("pricePerBox");
+const pricePerSqftInput = document.getElementById("pricePerSqft");
 const stockTableBody = document.getElementById("stockTableBody");
 const searchInput = document.getElementById("searchInput");
 const resetButton = document.getElementById("resetButton");
@@ -65,6 +66,7 @@ stockForm.addEventListener("submit", (e) => {
   const piecesPerBox = Number(piecesPerBoxInput.value) || 0;
   const location = locationInput.value.trim();
   const pricePerBox = Number(pricePerBoxInput.value) || 0;
+  const pricePerSqft = Number(pricePerSqftInput.value) || 0;
 
   if (!company || !tileName || !tileSize) {
     alert("Please select Company and enter Tile Name and Size");
@@ -79,6 +81,7 @@ stockForm.addEventListener("submit", (e) => {
     piecesPerBox,
     location,
     pricePerBox,
+    pricePerSqft,
   };
 
   if (editIndex === null) {
@@ -152,6 +155,7 @@ function renderTable() {
         <td>${totalPieces}</td>
         <td>${item.location || "-"}</td>
         <td>${item.pricePerBox ? "₹" + item.pricePerBox.toFixed(2) : "-"}</td>
+        <td>${item.pricePerSqft ? "₹" + item.pricePerSqft.toFixed(2) : "-"}</td>
         <td>
           <button class="action-btn edit-btn" data-index="${item.index}">Edit</button>
           <button class="action-btn delete-btn" data-index="${item.index}">Delete</button>
@@ -189,6 +193,7 @@ function startEdit(index) {
   piecesPerBoxInput.value = item.piecesPerBox;
   locationInput.value = item.location;
   pricePerBoxInput.value = item.pricePerBox;
+  pricePerSqftInput.value = item.pricePerSqft;
 
   saveButton.textContent = "Update Stock";
 

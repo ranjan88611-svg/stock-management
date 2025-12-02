@@ -1,98 +1,84 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
-// Use a persistent disk path if available (common in Render), otherwise local file
-const DB_PATH = process.env.RENDER_DISK_PATH
-    ? path.join(process.env.RENDER_DISK_PATH, 'stock_management.db')
-    : path.join(__dirname, 'stock_management.db');
-
-let db = null;
-
-// Helper to wrap sqlite3 functions in Promises
-function run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) reject(err);
-            else resolve(this);
-        });
-    });
-}
-
-function get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.get(sql, params, (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-        });
-    });
-}
-
-function all(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
-}
+// Use DATABASE_URL from environment variables
+// If not set, it will fail (which is expected, user needs to provide it)
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false // Required for many cloud providers like Neon/Supabase
+    }
+});
 
 // Initialize database
 async function initDatabase() {
-    return new Promise((resolve, reject) => {
-        db = new sqlite3.Database(DB_PATH, async (err) => {
-            if (err) {
-                console.error('❌ Could not connect to database', err);
-                reject(err);
-            } else {
-                console.log('✅ Connected to SQLite database at', DB_PATH);
+    try {
+        // Test connection
+        const client = await pool.connect();
+        console.log('✅ Connected to PostgreSQL database');
+        client.release();
 
-                try {
-                    // Create tables
-                    await createTables();
+        // Create tables
+        await createTables();
 
-                    // Insert default users
-                    await insertDefaultUsers();
+        // Insert default users
+        await insertDefaultUsers();
 
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            }
-        });
-    });
+    } catch (err) {
+        console.error('❌ Could not connect to database:', err);
+        // Don't exit process here, let server decide or retry
+        throw err;
+    }
 }
 
 // Create database tables
 async function createTables() {
-    // Users table
-    await run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL
-    )
-  `);
+    const client = await pool.connect();
+    try {
+        // Users table
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      )
+    `);
 
-    // Stocks table
-    await run(`
-    CREATE TABLE IF NOT EXISTS stocks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      company TEXT NOT NULL,
-      tileName TEXT NOT NULL,
-      tileSize TEXT NOT NULL,
-      boxCount INTEGER DEFAULT 0,
-      piecesPerBox INTEGER DEFAULT 0,
-      location TEXT,
-      pricePerBox REAL DEFAULT 0,
-      pricePerSqft REAL DEFAULT 0,
-      sqftPerBox REAL DEFAULT 0,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+        // Stocks table
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS stocks (
+        id SERIAL PRIMARY KEY,
+        company TEXT NOT NULL,
+        tileName TEXT NOT NULL,
+        tileSize TEXT NOT NULL,
+        boxCount INTEGER DEFAULT 0,
+        piecesPerBox INTEGER DEFAULT 0,
+        location TEXT,
+        pricePerBox REAL DEFAULT 0,
+        pricePerSqft REAL DEFAULT 0,
+        sqftPerBox REAL DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-    console.log('✅ Database tables checked/created');
+        // Session table (required for connect-pg-simple)
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL
+      )
+      WITH (OIDS=FALSE);
+
+      ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+    `);
+
+        console.log('✅ Database tables checked/created');
+    } finally {
+        client.release();
+    }
 }
 
 // Insert default users
@@ -101,21 +87,29 @@ async function insertDefaultUsers() {
     const defaultPassword = '123';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    for (const username of defaultUsers) {
-        try {
-            await run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword]);
-        } catch (err) {
-            // User likely already exists (UNIQUE constraint), ignore
+    const client = await pool.connect();
+    try {
+        for (const username of defaultUsers) {
+            try {
+                await client.query(
+                    'INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING',
+                    [username, hashedPassword]
+                );
+            } catch (err) {
+                console.error(`Error inserting user ${username}:`, err);
+            }
         }
+        console.log('✅ Default users checked/inserted');
+    } finally {
+        client.release();
     }
-
-    console.log('✅ Default users checked/inserted');
 }
 
 // ====== USER OPERATIONS ======
 
 async function authenticateUser(username, password) {
-    const user = await get('SELECT * FROM users WHERE username = ?', [username]);
+    const { rows } = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = rows[0];
 
     if (!user) {
         return null;
@@ -132,17 +126,19 @@ async function getAllStocks(companyFilter = null) {
     let params = [];
 
     if (companyFilter && companyFilter !== 'ALL') {
-        query += ' WHERE company = ?';
+        query += ' WHERE company = $1';
         params.push(companyFilter);
     }
 
     query += ' ORDER BY id DESC';
 
-    return await all(query, params);
+    const { rows } = await pool.query(query, params);
+    return rows;
 }
 
 async function getStockById(id) {
-    return await get('SELECT * FROM stocks WHERE id = ?', [id]);
+    const { rows } = await pool.query('SELECT * FROM stocks WHERE id = $1', [id]);
+    return rows[0];
 }
 
 async function createStock(stockData) {
@@ -158,17 +154,21 @@ async function createStock(stockData) {
         sqftPerBox = 0
     } = stockData;
 
-    const result = await run(`
+    const query = `
     INSERT INTO stocks (
       company, tileName, tileSize, boxCount, piecesPerBox,
       location, pricePerBox, pricePerSqft, sqftPerBox
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *
+  `;
+
+    const values = [
         company, tileName, tileSize, boxCount, piecesPerBox,
         location, pricePerBox, pricePerSqft, sqftPerBox
-    ]);
+    ];
 
-    return await getStockById(result.lastID);
+    const { rows } = await pool.query(query, values);
+    return rows[0];
 }
 
 async function updateStock(id, stockData) {
@@ -184,29 +184,33 @@ async function updateStock(id, stockData) {
         sqftPerBox
     } = stockData;
 
-    await run(`
+    const query = `
     UPDATE stocks SET
-      company = ?,
-      tileName = ?,
-      tileSize = ?,
-      boxCount = ?,
-      piecesPerBox = ?,
-      location = ?,
-      pricePerBox = ?,
-      pricePerSqft = ?,
-      sqftPerBox = ?,
+      company = $1,
+      tileName = $2,
+      tileSize = $3,
+      boxCount = $4,
+      piecesPerBox = $5,
+      location = $6,
+      pricePerBox = $7,
+      pricePerSqft = $8,
+      sqftPerBox = $9,
       updatedAt = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `, [
+    WHERE id = $10
+    RETURNING *
+  `;
+
+    const values = [
         company, tileName, tileSize, boxCount, piecesPerBox,
         location, pricePerBox, pricePerSqft, sqftPerBox, id
-    ]);
+    ];
 
-    return await getStockById(id);
+    const { rows } = await pool.query(query, values);
+    return rows[0];
 }
 
 async function deleteStock(id) {
-    await run('DELETE FROM stocks WHERE id = ?', [id]);
+    await pool.query('DELETE FROM stocks WHERE id = $1', [id]);
     return true;
 }
 
@@ -217,5 +221,6 @@ module.exports = {
     getStockById,
     createStock,
     updateStock,
-    deleteStock
+    deleteStock,
+    pool // Export pool for session store
 };

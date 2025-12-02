@@ -20,19 +20,20 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 // Session configuration
-const SQLiteStore = require('connect-sqlite3')(session);
+const pgSession = require('connect-pg-simple')(session);
 
 app.use(session({
-  store: new SQLiteStore({
-    db: 'sessions.db',
-    dir: __dirname
+  store: new pgSession({
+    pool: db.pool, // Use the pool from database.js
+    tableName: 'session' // Use 'session' table
   }),
   secret: 'stock-management-secret-key-2024',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production' // Secure in production
   }
 }));
 

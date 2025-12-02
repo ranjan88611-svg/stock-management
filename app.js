@@ -4,25 +4,34 @@ let editIndex = null; // null means "add mode", number means "edit mode"
 let currentCompanyFilter = "ALL";
 
 // ----- Check Authentication -----
-if (localStorage.getItem("isLoggedIn") !== "true") {
-  window.location.href = "login.html";
-}
+fetch('/api/session')
+  .then(res => res.json())
+  .then(data => {
+    if (!data.authenticated) {
+      window.location.href = 'login.html';
+    }
+  })
+  .catch(err => {
+    console.error('Session check failed:', err);
+    window.location.href = 'login.html';
+  });
 
-// ----- Load from localStorage on page load -----
-window.addEventListener("DOMContentLoaded", () => {
-  const saved = localStorage.getItem("tilesStocks");
-  if (saved) {
-    stocks = JSON.parse(saved);
-  }
+// ----- Load stocks from API on page load -----
+window.addEventListener("DOMContentLoaded", async () => {
+  await loadStocksFromAPI();
   renderTable();
 
   // Setup logout button
   const logoutBtn = document.getElementById("logoutButton");
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("isLoggedIn");
-      localStorage.removeItem("currentUser");
-      window.location.href = "login.html";
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = "login.html";
+      } catch (err) {
+        console.error('Logout failed:', err);
+        window.location.href = "login.html";
+      }
     });
   }
 });
@@ -44,9 +53,87 @@ const resetButton = document.getElementById("resetButton");
 const saveButton = document.getElementById("saveButton");
 const tabButtons = document.querySelectorAll(".tab-btn");
 
-// ----- Helpers -----
-function saveToLocalStorage() {
-  localStorage.setItem("tilesStocks", JSON.stringify(stocks));
+// ----- API Helper Functions -----
+async function loadStocksFromAPI() {
+  try {
+    const response = await fetch('/api/stocks');
+    if (response.ok) {
+      stocks = await response.json();
+    } else {
+      console.error('Failed to load stocks');
+      showError('Failed to load stocks from server');
+    }
+  } catch (error) {
+    console.error('Load stocks error:', error);
+    showError('Network error while loading stocks');
+  }
+}
+
+async function saveStockToAPI(stockData) {
+  try {
+    const response = await fetch('/api/stocks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(stockData)
+    });
+
+    if (response.ok) {
+      return await response.json();
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to save stock');
+    }
+  } catch (error) {
+    console.error('Save stock error:', error);
+    throw error;
+  }
+}
+
+async function updateStockAPI(id, stockData) {
+  try {
+    const response = await fetch(`/api/stocks/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(stockData)
+    });
+
+    if (response.ok) {
+      return await response.json();
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update stock');
+    }
+  } catch (error) {
+    console.error('Update stock error:', error);
+    throw error;
+  }
+}
+
+async function deleteStockAPI(id) {
+  try {
+    const response = await fetch(`/api/stocks/${id}`, {
+      method: 'DELETE'
+    });
+
+    if (response.ok) {
+      return true;
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete stock');
+    }
+  } catch (error) {
+    console.error('Delete stock error:', error);
+    throw error;
+  }
+}
+
+// ----- Helper Functions -----
+function showError(message) {
+  alert(message);
 }
 
 function clearForm() {
@@ -57,7 +144,7 @@ function clearForm() {
 }
 
 // ----- Form Submit (Add / Update) -----
-stockForm.addEventListener("submit", (e) => {
+stockForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const company = companySelect.value;
@@ -87,17 +174,30 @@ stockForm.addEventListener("submit", (e) => {
     sqftPerBox,
   };
 
-  if (editIndex === null) {
-    // Add
-    stocks.push(stockItem);
-  } else {
-    // Update
-    stocks[editIndex] = stockItem;
-  }
+  try {
+    // Disable button during save
+    saveButton.disabled = true;
+    saveButton.textContent = editIndex === null ? "Saving..." : "Updating...";
 
-  saveToLocalStorage();
-  renderTable();
-  clearForm();
+    if (editIndex === null) {
+      // Add new stock
+      await saveStockToAPI(stockItem);
+    } else {
+      // Update existing stock
+      const stockId = stocks[editIndex].id;
+      await updateStockAPI(stockId, stockItem);
+    }
+
+    // Reload stocks from server
+    await loadStocksFromAPI();
+    renderTable();
+    clearForm();
+  } catch (error) {
+    showError(error.message || 'Failed to save stock');
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = editIndex === null ? "Add Stock" : "Update Stock";
+  }
 });
 
 // ----- Reset button -----
@@ -207,9 +307,17 @@ function startEdit(index) {
 }
 
 // ----- Delete -----
-function deleteStock(index) {
+async function deleteStock(index) {
   if (!confirm("Are you sure you want to delete this item?")) return;
-  stocks.splice(index, 1);
-  saveToLocalStorage();
-  renderTable();
+
+  try {
+    const stockId = stocks[index].id;
+    await deleteStockAPI(stockId);
+
+    // Reload stocks from server
+    await loadStocksFromAPI();
+    renderTable();
+  } catch (error) {
+    showError(error.message || 'Failed to delete stock');
+  }
 }

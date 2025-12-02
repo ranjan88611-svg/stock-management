@@ -1,40 +1,72 @@
-const initSqlJs = require('sql.js');
-const fs = require('fs');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = path.join(__dirname, 'stock_management.db');
+// Use a persistent disk path if available (common in Render), otherwise local file
+const DB_PATH = process.env.RENDER_DISK_PATH
+    ? path.join(process.env.RENDER_DISK_PATH, 'stock_management.db')
+    : path.join(__dirname, 'stock_management.db');
 
 let db = null;
 
+// Helper to wrap sqlite3 functions in Promises
+function run(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) reject(err);
+            else resolve(this);
+        });
+    });
+}
+
+function get(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.get(sql, params, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
+    });
+}
+
+function all(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
 // Initialize database
 async function initDatabase() {
-    const SQL = await initSqlJs();
+    return new Promise((resolve, reject) => {
+        db = new sqlite3.Database(DB_PATH, async (err) => {
+            if (err) {
+                console.error('❌ Could not connect to database', err);
+                reject(err);
+            } else {
+                console.log('✅ Connected to SQLite database at', DB_PATH);
 
-    // Load existing database or create new one
-    if (fs.existsSync(DB_PATH)) {
-        const buffer = fs.readFileSync(DB_PATH);
-        db = new SQL.Database(buffer);
-        console.log('✅ Database loaded from file');
-    } else {
-        db = new SQL.Database();
-        console.log('✅ New database created');
+                try {
+                    // Create tables
+                    await createTables();
 
-        // Create tables
-        createTables();
+                    // Insert default users
+                    await insertDefaultUsers();
 
-        // Insert default users
-        await insertDefaultUsers();
-
-        // Save to file
-        saveDatabase();
-    }
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            }
+        });
+    });
 }
 
 // Create database tables
-function createTables() {
+async function createTables() {
     // Users table
-    db.run(`
+    await run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -43,7 +75,7 @@ function createTables() {
   `);
 
     // Stocks table
-    db.run(`
+    await run(`
     CREATE TABLE IF NOT EXISTS stocks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       company TEXT NOT NULL,
@@ -60,7 +92,7 @@ function createTables() {
     )
   `);
 
-    console.log('✅ Database tables created');
+    console.log('✅ Database tables checked/created');
 }
 
 // Insert default users
@@ -69,41 +101,21 @@ async function insertDefaultUsers() {
     const defaultPassword = '123';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    const stmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
-
     for (const username of defaultUsers) {
         try {
-            stmt.run([username, hashedPassword]);
+            await run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword]);
         } catch (err) {
-            // User might already exist, skip
+            // User likely already exists (UNIQUE constraint), ignore
         }
     }
 
-    stmt.free();
-    console.log('✅ Default users inserted');
-}
-
-// Save database to file
-function saveDatabase() {
-    if (db) {
-        const data = db.export();
-        const buffer = Buffer.from(data);
-        fs.writeFileSync(DB_PATH, buffer);
-    }
+    console.log('✅ Default users checked/inserted');
 }
 
 // ====== USER OPERATIONS ======
 
 async function authenticateUser(username, password) {
-    const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
-    stmt.bind([username]);
-
-    let user = null;
-    if (stmt.step()) {
-        const row = stmt.getAsObject();
-        user = row;
-    }
-    stmt.free();
+    const user = await get('SELECT * FROM users WHERE username = ?', [username]);
 
     if (!user) {
         return null;
@@ -115,7 +127,7 @@ async function authenticateUser(username, password) {
 
 // ====== STOCK OPERATIONS ======
 
-function getAllStocks(companyFilter = null) {
+async function getAllStocks(companyFilter = null) {
     let query = 'SELECT * FROM stocks';
     let params = [];
 
@@ -126,34 +138,14 @@ function getAllStocks(companyFilter = null) {
 
     query += ' ORDER BY id DESC';
 
-    const stmt = db.prepare(query);
-    if (params.length > 0) {
-        stmt.bind(params);
-    }
-
-    const stocks = [];
-    while (stmt.step()) {
-        stocks.push(stmt.getAsObject());
-    }
-    stmt.free();
-
-    return stocks;
+    return await all(query, params);
 }
 
-function getStockById(id) {
-    const stmt = db.prepare('SELECT * FROM stocks WHERE id = ?');
-    stmt.bind([id]);
-
-    let stock = null;
-    if (stmt.step()) {
-        stock = stmt.getAsObject();
-    }
-    stmt.free();
-
-    return stock;
+async function getStockById(id) {
+    return await get('SELECT * FROM stocks WHERE id = ?', [id]);
 }
 
-function createStock(stockData) {
+async function createStock(stockData) {
     const {
         company,
         tileName,
@@ -166,26 +158,20 @@ function createStock(stockData) {
         sqftPerBox = 0
     } = stockData;
 
-    const stmt = db.prepare(`
+    const result = await run(`
     INSERT INTO stocks (
       company, tileName, tileSize, boxCount, piecesPerBox,
       location, pricePerBox, pricePerSqft, sqftPerBox
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-    stmt.run([
+  `, [
         company, tileName, tileSize, boxCount, piecesPerBox,
         location, pricePerBox, pricePerSqft, sqftPerBox
     ]);
 
-    const lastId = db.exec('SELECT last_insert_rowid() as id')[0].values[0][0];
-    stmt.free();
-
-    saveDatabase();
-    return getStockById(lastId);
+    return await getStockById(result.lastID);
 }
 
-function updateStock(id, stockData) {
+async function updateStock(id, stockData) {
     const {
         company,
         tileName,
@@ -198,7 +184,7 @@ function updateStock(id, stockData) {
         sqftPerBox
     } = stockData;
 
-    const stmt = db.prepare(`
+    await run(`
     UPDATE stocks SET
       company = ?,
       tileName = ?,
@@ -211,25 +197,16 @@ function updateStock(id, stockData) {
       sqftPerBox = ?,
       updatedAt = CURRENT_TIMESTAMP
     WHERE id = ?
-  `);
-
-    stmt.run([
+  `, [
         company, tileName, tileSize, boxCount, piecesPerBox,
         location, pricePerBox, pricePerSqft, sqftPerBox, id
     ]);
 
-    stmt.free();
-    saveDatabase();
-
-    return getStockById(id);
+    return await getStockById(id);
 }
 
-function deleteStock(id) {
-    const stmt = db.prepare('DELETE FROM stocks WHERE id = ?');
-    stmt.run([id]);
-    stmt.free();
-
-    saveDatabase();
+async function deleteStock(id) {
+    await run('DELETE FROM stocks WHERE id = ?', [id]);
     return true;
 }
 

@@ -19,7 +19,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
+// Session configuration
+const SQLiteStore = require('connect-sqlite3')(session);
+
 app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
+    dir: __dirname
+  }),
   secret: 'stock-management-secret-key-2024',
   resave: false,
   saveUninitialized: false,
@@ -90,10 +97,10 @@ app.get("/api/session", (req, res) => {
 });
 
 // Get all stocks (with optional company filter)
-app.get("/api/stocks", requireAuth, (req, res) => {
+app.get("/api/stocks", requireAuth, async (req, res) => {
   try {
     const { company } = req.query;
-    const stocks = db.getAllStocks(company);
+    const stocks = await db.getAllStocks(company);
     res.json(stocks);
   } catch (error) {
     console.error("Get stocks error:", error);
@@ -102,9 +109,9 @@ app.get("/api/stocks", requireAuth, (req, res) => {
 });
 
 // Get single stock
-app.get("/api/stocks/:id", requireAuth, (req, res) => {
+app.get("/api/stocks/:id", requireAuth, async (req, res) => {
   try {
-    const stock = db.getStockById(parseInt(req.params.id));
+    const stock = await db.getStockById(parseInt(req.params.id));
     if (stock) {
       res.json(stock);
     } else {
@@ -117,7 +124,7 @@ app.get("/api/stocks/:id", requireAuth, (req, res) => {
 });
 
 // Create new stock
-app.post("/api/stocks", requireAuth, (req, res) => {
+app.post("/api/stocks", requireAuth, async (req, res) => {
   try {
     const stockData = req.body;
 
@@ -128,7 +135,7 @@ app.post("/api/stocks", requireAuth, (req, res) => {
       });
     }
 
-    const newStock = db.createStock(stockData);
+    const newStock = await db.createStock(stockData);
     res.status(201).json(newStock);
   } catch (error) {
     console.error("Create stock error:", error);
@@ -137,13 +144,13 @@ app.post("/api/stocks", requireAuth, (req, res) => {
 });
 
 // Update stock
-app.put("/api/stocks/:id", requireAuth, (req, res) => {
+app.put("/api/stocks/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const stockData = req.body;
 
     // Check if stock exists
-    const existing = db.getStockById(id);
+    const existing = await db.getStockById(id);
     if (!existing) {
       return res.status(404).json({ error: "Stock not found" });
     }
@@ -155,7 +162,7 @@ app.put("/api/stocks/:id", requireAuth, (req, res) => {
       });
     }
 
-    const updatedStock = db.updateStock(id, stockData);
+    const updatedStock = await db.updateStock(id, stockData);
     res.json(updatedStock);
   } catch (error) {
     console.error("Update stock error:", error);
@@ -164,17 +171,17 @@ app.put("/api/stocks/:id", requireAuth, (req, res) => {
 });
 
 // Delete stock
-app.delete("/api/stocks/:id", requireAuth, (req, res) => {
+app.delete("/api/stocks/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
     // Check if stock exists
-    const existing = db.getStockById(id);
+    const existing = await db.getStockById(id);
     if (!existing) {
       return res.status(404).json({ error: "Stock not found" });
     }
 
-    db.deleteStock(id);
+    await db.deleteStock(id);
     res.json({ success: true, message: "Stock deleted successfully" });
   } catch (error) {
     console.error("Delete stock error:", error);

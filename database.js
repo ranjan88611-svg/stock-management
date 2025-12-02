@@ -2,9 +2,22 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
 // Use DATABASE_URL from environment variables
-// If not set, it will fail (which is expected, user needs to provide it)
+let connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+    console.error('❌ DATABASE_URL environment variable is missing!');
+} else {
+    // Clean up common copy-paste errors
+    // Remove leading/trailing quotes
+    connectionString = connectionString.replace(/^["']|["']$/g, '').trim();
+    // Remove "DATABASE_URL=" prefix if present
+    connectionString = connectionString.replace(/^DATABASE_URL=/, '');
+
+    console.log('ℹ️ Connection string detected (masked):', connectionString.replace(/:[^:@]+@/, ':****@'));
+}
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
     ssl: {
         rejectUnauthorized: false // Required for many cloud providers like Neon/Supabase
     }

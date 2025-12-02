@@ -224,11 +224,13 @@ tabButtons.forEach(btn => {
 });
 
 // ----- Render Table -----
+// ----- Render Table -----
 function renderTable() {
-  const searchText = searchInput.value.toLowerCase();
+  const searchText = searchInput.value.toLowerCase().trim();
   stockTableBody.innerHTML = "";
 
-  stocks
+  // 1. Primary Filter: Exact/Substring Match
+  let filteredStocks = stocks
     .map((stock, index) => ({ ...stock, index }))
     .filter((item) => {
       // Filter by Company
@@ -236,19 +238,37 @@ function renderTable() {
         return false;
       }
 
-      // Filter by Search
+      // Filter by Search (Substring)
       if (!searchText) return true;
       return (
         item.tileName.toLowerCase().includes(searchText) ||
         item.tileSize.toLowerCase().includes(searchText)
       );
-    })
-    .forEach((item, displayIndex) => {
-      const tr = document.createElement("tr");
+    });
 
-      const totalPieces = item.boxCount * item.piecesPerBox;
+  // 2. Secondary Filter: Fuzzy Match (if no results found)
+  if (filteredStocks.length === 0 && searchText.length > 2) {
+    filteredStocks = stocks
+      .map((stock, index) => ({ ...stock, index }))
+      .filter((item) => {
+        // Filter by Company
+        if (currentCompanyFilter !== "ALL" && item.company !== currentCompanyFilter) {
+          return false;
+        }
 
-      tr.innerHTML = `
+        // Check Levenshtein Distance
+        const nameDist = levenshteinDistance(item.tileName.toLowerCase(), searchText);
+        // Allow distance of 3 or less (adjustable)
+        return nameDist <= 3;
+      });
+  }
+
+  filteredStocks.forEach((item, displayIndex) => {
+    const tr = document.createElement("tr");
+
+    const totalPieces = item.boxCount * item.piecesPerBox;
+
+    tr.innerHTML = `
         <td>${displayIndex + 1}</td>
         <td><span class="badge">${item.company || '-'}</span></td>
         <td>${item.tileName}</td>
@@ -266,8 +286,8 @@ function renderTable() {
         </td>
       `;
 
-      stockTableBody.appendChild(tr);
-    });
+    stockTableBody.appendChild(tr);
+  });
 
   // Attach events for Edit / Delete
   document.querySelectorAll(".edit-btn").forEach((btn) => {
@@ -283,6 +303,37 @@ function renderTable() {
       deleteStock(index);
     });
   });
+}
+
+// ----- Helper: Levenshtein Distance -----
+function levenshteinDistance(a, b) {
+  const matrix = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          Math.min(
+            matrix[i][j - 1] + 1, // insertion
+            matrix[i - 1][j] + 1 // deletion
+          )
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
 }
 
 // ----- Edit -----

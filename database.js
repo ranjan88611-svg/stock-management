@@ -82,7 +82,7 @@ async function createTables() {
         "sess" json NOT NULL,
         "expire" timestamp(6) NOT NULL
       )
-      WITH (OIDS=FALSE);
+      ;
 
       ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
       CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
@@ -118,6 +118,23 @@ async function insertDefaultUsers() {
     }
 }
 
+// ====== HELPER: Map Postgres Lowercase to CamelCase ======
+function mapStock(row) {
+    if (!row) return null;
+    return {
+        ...row,
+        tileName: row.tilename || row.tileName,
+        tileSize: row.tilesize || row.tileSize,
+        boxCount: row.boxcount || row.boxCount,
+        piecesPerBox: row.piecesperbox || row.piecesPerBox,
+        pricePerBox: row.priceperbox || row.pricePerBox,
+        pricePerSqft: row.pricepersqft || row.pricePerSqft,
+        sqftPerBox: row.sqftperbox || row.sqftPerBox,
+        createdAt: row.createdat || row.createdAt,
+        updatedAt: row.updatedat || row.updatedAt
+    };
+}
+
 // ====== USER OPERATIONS ======
 
 async function authenticateUser(username, password) {
@@ -146,12 +163,12 @@ async function getAllStocks(companyFilter = null) {
     query += ' ORDER BY id DESC';
 
     const { rows } = await pool.query(query, params);
-    return rows;
+    return rows.map(mapStock);
 }
 
 async function getStockById(id) {
     const { rows } = await pool.query('SELECT * FROM stocks WHERE id = $1', [id]);
-    return rows[0];
+    return mapStock(rows[0]);
 }
 
 async function createStock(stockData) {
@@ -181,7 +198,7 @@ async function createStock(stockData) {
     ];
 
     const { rows } = await pool.query(query, values);
-    return rows[0];
+    return mapStock(rows[0]);
 }
 
 async function updateStock(id, stockData) {
@@ -219,7 +236,7 @@ async function updateStock(id, stockData) {
     ];
 
     const { rows } = await pool.query(query, values);
-    return rows[0];
+    return mapStock(rows[0]);
 }
 
 async function deleteStock(id) {

@@ -1,26 +1,32 @@
 /* ====== VARIABLES & RESET ====== */
 :root {
-  /* Color Palette - Slate & Blue */
-  --bg-body: #f1f5f9;
+  /* Classic Color Palette - Warm & Professional */
+  --bg-body: #f8f6f3;
   --bg-card: #ffffff;
 
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --text-main: #2c2416;
+  --text-muted: #6b5d4f;
+  --text-light: #9b8b7e;
 
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-light: #eff6ff;
+  /* Classic Navy & Gold */
+  --primary: #1e3a5f;
+  --primary-hover: #152b47;
+  --primary-light: #e8eef5;
 
-  --danger: #ef4444;
-  --danger-hover: #dc2626;
+  /* Warm Accent */
+  --accent: #b8860b;
+  --accent-hover: #9a7109;
+  --accent-light: #fdf8e8;
 
-  --success: #10b981;
+  --danger: #c53030;
+  --danger-hover: #9b2c2c;
 
-  --border: #e2e8f0;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --success: #2f855a;
+
+  --border: #d4c8ba;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08);
+  --shadow: 0 4px 8px -2px rgb(0 0 0 / 0.12), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 10px 20px -5px rgb(0 0 0 / 0.15), 0 4px 8px -4px rgb(0 0 0 / 0.1);
 
   --radius: 0.5rem;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -33,7 +39,7 @@
 }
 
 body {
-  background: linear-gradient(rgba(241, 245, 249, 0.9), rgba(241, 245, 249, 0.9)), url('bg.png');
+  background: linear-gradient(rgba(248, 246, 243, 0.5), rgba(248, 246, 243, 0.6)), url('bg.png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -56,21 +62,25 @@ header {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  background: linear-gradient(135deg, var(--primary) 0%, #2a4d7a 100%);
+  padding: 1.5rem 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
 }
 
 h1 {
   font-size: 1.875rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: #ffffff;
   letter-spacing: -0.025em;
 }
 
 h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-main);
+  color: var(--primary);
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
   padding-bottom: 0.75rem;
 }
 
@@ -117,8 +127,8 @@ select {
 input:focus,
 select:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 #stockForm {
@@ -144,14 +154,16 @@ button {
 }
 
 #saveButton {
-  background-color: var(--primary);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
   grid-column: span 1;
+  box-shadow: var(--shadow-sm);
 }
 
 #saveButton:hover {
-  background-color: var(--primary-hover);
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, #7a5a07 100%);
+  box-shadow: 0 4px 8px -1px rgba(184, 134, 11, 0.4);
+  transform: translateY(-1px);
 }
 
 .secondary-btn {
@@ -163,19 +175,21 @@ button {
 .secondary-btn:hover {
   background-color: var(--bg-body);
   color: var(--text-main);
+  border-color: var(--text-muted);
 }
 
 .logout-btn {
-  background-color: white;
-  color: var(--danger);
-  border: 1px solid var(--border);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
+  backdrop-filter: blur(10px);
 }
 
 .logout-btn:hover {
-  background-color: #fef2f2;
-  border-color: #fecaca;
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Tabs */
@@ -183,10 +197,11 @@ button {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  background: var(--bg-body);
+  background: var(--primary-light);
   padding: 0.25rem;
   border-radius: var(--radius);
   width: fit-content;
+  border: 1px solid var(--border);
 }
 
 .tab-btn {
@@ -199,13 +214,13 @@ button {
 }
 
 .tab-btn:hover {
-  color: var(--text-main);
+  color: var(--primary);
   background: rgba(255, 255, 255, 0.5);
 }
 
 .tab-btn.active {
-  background: white;
-  color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #2a4d7a 100%);
+  color: white;
   box-shadow: var(--shadow-sm);
   font-weight: 600;
 }
@@ -224,15 +239,15 @@ table {
 }
 
 thead {
-  background-color: #f8fafc;
-  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--primary) 0%, #2a4d7a 100%);
+  border-bottom: 2px solid var(--accent);
 }
 
 th {
   text-align: left;
   padding: 0.75rem 1.5rem;
   font-weight: 600;
-  color: var(--text-muted);
+  color: #ffffff;
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
@@ -249,7 +264,7 @@ tr:last-child td {
 }
 
 tr:hover td {
-  background-color: #f8fafc;
+  background-color: var(--accent-light);
 }
 
 .badge {
@@ -258,8 +273,9 @@ tr:hover td {
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 9999px;
-  background-color: var(--primary-light);
-  color: var(--primary);
+  background: linear-gradient(135deg, var(--accent-light) 0%, #fef5d8 100%);
+  color: var(--accent-hover);
+  border: 1px solid var(--accent);
 }
 
 /* Action Buttons in Table */
@@ -276,8 +292,9 @@ tr:hover td {
 }
 
 .edit-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+  background-color: var(--accent-light);
 }
 
 .delete-btn {
@@ -289,11 +306,12 @@ tr:hover td {
 .delete-btn:hover {
   border-color: var(--danger);
   color: var(--danger);
+  background-color: #fff5f5;
 }
 
 /* ====== LOGIN PAGE ====== */
 .login-body {
-  background: linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('bg.png');
+  background: linear-gradient(rgba(30, 58, 95, 0.7), rgba(30, 58, 95, 0.8)), url('bg.png');
   background-size: cover;
   background-position: center;
   display: flex;
@@ -314,11 +332,12 @@ tr:hover td {
   border-radius: 1rem;
   box-shadow: var(--shadow-lg);
   text-align: center;
+  border: 1px solid var(--border);
 }
 
 .login-card h1 {
   margin-bottom: 0.5rem;
-  color: var(--text-main);
+  color: var(--primary);
 }
 
 .subtitle {
@@ -334,7 +353,7 @@ tr:hover td {
 
 .login-btn {
   width: 100%;
-  background-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #2a4d7a 100%);
   color: white;
   padding: 0.75rem;
   font-size: 1rem;
@@ -342,7 +361,9 @@ tr:hover td {
 }
 
 .login-btn:hover {
-  background-color: var(--primary-hover);
+  background: linear-gradient(135deg, var(--primary-hover) 0%, #1e3a5f 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 
 .error-message {

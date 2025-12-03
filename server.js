@@ -6,14 +6,6 @@ const db = require("./database");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize database
-db.initDatabase().then(() => {
-  console.log("✅ Database initialized successfully");
-}).catch(err => {
-  console.error("❌ Database initialization failed:", err);
-  process.exit(1);
-});
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -203,7 +195,24 @@ app.get("/index.html", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+// ====== INITIALIZE AND START SERVER ======
+async function startServer() {
+  try {
+    // Step 1: Initialize database
+    console.log('📦 Initializing database...');
+    await db.initDatabase();
+    console.log('✅ Database initialized successfully');
+
+    // Step 2: Start Express server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running at http://localhost:${PORT}`);
+      console.log(`📍 Login at: http://localhost:${PORT}/login.html`);
+    });
+  } catch (err) {
+    console.error('❌ Server initialization failed:', err);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();

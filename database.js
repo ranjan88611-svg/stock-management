@@ -110,6 +110,7 @@ async function insertDefaultUsers() {
 
     const client = await pool.connect();
     try {
+        // Insert default users with password '123'
         for (const username of defaultUsers) {
             try {
                 await client.query(
@@ -120,6 +121,20 @@ async function insertDefaultUsers() {
                 console.error(`Error inserting user ${username}:`, err);
             }
         }
+
+        // Insert admin user 'ranjan' with password 'what@2020'
+        const adminPassword = 'what@2020';
+        const adminHashedPassword = await bcrypt.hash(adminPassword, 10);
+        try {
+            await client.query(
+                'INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO UPDATE SET password = $2',
+                ['ranjan', adminHashedPassword]
+            );
+            console.log('✅ Admin user "ranjan" checked/inserted');
+        } catch (err) {
+            console.error('Error inserting admin user ranjan:', err);
+        }
+
         console.log('✅ Default users checked/inserted');
     } finally {
         client.release();

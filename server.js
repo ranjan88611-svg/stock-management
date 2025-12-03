@@ -228,6 +228,26 @@ app.post("/api/stocks/deduct", requireAuth, async (req, res) => {
   }
 });
 
+// TEMP: Update password route
+app.get("/api/temp/update-password", async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const username = 'ranjan';
+    const newPassword = 'what@2020';
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db.pool.query(
+      'UPDATE users SET password = $1 WHERE username = $2',
+      [hashedPassword, username]
+    );
+
+    res.json({ success: true, message: `Password for ${username} updated` });
+  } catch (error) {
+    console.error("Password update error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ====== SERVE HTML PAGES ======
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "login.html"));

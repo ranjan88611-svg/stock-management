@@ -44,17 +44,20 @@ function renderLogs(logs) {
         const date = new Date(log.timestamp).toLocaleString();
         let badgeClass = 'bg-secondary';
 
-        if (log.actionType.includes('ADD')) badgeClass = 'bg-add';
-        else if (log.actionType === 'UPDATE') badgeClass = 'bg-update';
-        else if (log.actionType === 'DELETE') badgeClass = 'bg-delete';
-        else if (log.actionType === 'DEDUCT') badgeClass = 'bg-deduct';
+        // Safety check for actionType
+        const actionType = log.actiontype || log.actionType || 'UNKNOWN';
+
+        if (actionType.includes('ADD')) badgeClass = 'bg-add';
+        else if (actionType === 'UPDATE') badgeClass = 'bg-update';
+        else if (actionType === 'DELETE') badgeClass = 'bg-delete';
+        else if (actionType === 'DEDUCT') badgeClass = 'bg-deduct';
 
         return `
       <tr>
         <td>${date}</td>
-        <td><strong>${log.username}</strong></td>
-        <td><span class="badge-action ${badgeClass}">${log.actionType}</span></td>
-        <td>${log.details}</td>
+        <td><strong>${log.username || 'Unknown'}</strong></td>
+        <td><span class="badge-action ${badgeClass}">${actionType}</span></td>
+        <td>${log.details || ''}</td>
       </tr>
     `;
     }).join('');

@@ -133,7 +133,7 @@ app.post("/api/stocks", requireAuth, async (req, res) => {
       });
     }
 
-    const newStock = await db.createStock(stockData);
+    const newStock = await db.addOrUpdateStock(stockData);
     res.status(201).json(newStock);
   } catch (error) {
     console.error("Create stock error:", error);

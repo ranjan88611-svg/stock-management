@@ -286,5 +286,46 @@ module.exports = {
     updateStock,
     deleteStock,
     deductStock,
+    addOrUpdateStock,
     pool // Export pool for session store
 };
+
+async function addOrUpdateStock(stockData) {
+    const {
+        company,
+        tileName,
+        tileSize,
+        boxCount = 0,
+        piecesPerBox = 0,
+        location = '',
+        pricePerBox = 0,
+        pricePerSqft = 0,
+        sqftPerBox = 0
+    } = stockData;
+
+    // Check if stock exists
+    const { rows } = await pool.query(
+        'SELECT * FROM stocks WHERE company = $1 AND tileName = $2 AND tileSize = $3',
+        [company, tileName, tileSize]
+    );
+
+    if (rows.length > 0) {
+        // Stock exists, update it
+        const existingStock = mapStock(rows[0]);
+        const newBoxCount = existingStock.boxCount + boxCount;
+
+        const updateQuery = `
+            UPDATE stocks SET
+              boxCount = $1,
+              updatedAt = CURRENT_TIMESTAMP
+            WHERE id = $2
+            RETURNING *
+        `;
+
+        const { rows: updatedRows } = await pool.query(updateQuery, [newBoxCount, existingStock.id]);
+        return mapStock(updatedRows[0]);
+    } else {
+        // Stock does not exist, create new
+        return await createStock(stockData);
+    }
+}

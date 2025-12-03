@@ -121,6 +121,17 @@ app.get("/api/stocks/:id", requireAuth, async (req, res) => {
   }
 });
 
+// Get audit logs
+app.get("/api/admin/logs", requireAuth, async (req, res) => {
+  try {
+    const logs = await db.getAuditLogs();
+    res.json(logs);
+  } catch (error) {
+    console.error("Get audit logs error:", error);
+    res.status(500).json({ error: "Failed to fetch audit logs" });
+  }
+});
+
 // Create new stock
 app.post("/api/stocks", requireAuth, async (req, res) => {
   try {
@@ -133,7 +144,7 @@ app.post("/api/stocks", requireAuth, async (req, res) => {
       });
     }
 
-    const newStock = await db.addOrUpdateStock(stockData);
+    const newStock = await db.addOrUpdateStock(stockData, req.session.username);
     res.status(201).json(newStock);
   } catch (error) {
     console.error("Create stock error:", error);
@@ -160,7 +171,7 @@ app.put("/api/stocks/:id", requireAuth, async (req, res) => {
       });
     }
 
-    const updatedStock = await db.updateStock(id, stockData);
+    const updatedStock = await db.updateStock(id, stockData, req.session.username);
     res.json(updatedStock);
   } catch (error) {
     console.error("Update stock error:", error);
@@ -179,7 +190,7 @@ app.delete("/api/stocks/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Stock not found" });
     }
 
-    await db.deleteStock(id);
+    await db.deleteStock(id, req.session.username);
     res.json({ success: true, message: "Stock deleted successfully" });
   } catch (error) {
     console.error("Delete stock error:", error);
@@ -204,7 +215,7 @@ app.post("/api/stocks/deduct", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Boxes to deduct must be greater than 0" });
     }
 
-    const result = await db.deductStock(company, tileName, tileSize, boxesToDeduct);
+    const result = await db.deductStock(company, tileName, tileSize, boxesToDeduct, req.session.username);
     res.json(result);
   } catch (error) {
     console.error("Deduct stock error:", error);

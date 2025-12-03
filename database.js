@@ -85,6 +85,17 @@ async function createTables() {
       CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
     `);
 
+        // Audit Logs table
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id SERIAL PRIMARY KEY,
+        actionType TEXT NOT NULL,
+        username TEXT NOT NULL,
+        details TEXT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
         console.log('✅ Database tables checked/created');
     } finally {
         client.release();
@@ -132,6 +143,24 @@ function mapStock(row) {
     };
 }
 
+// ====== AUDIT LOGGING ======
+async function logAudit(actionType, username, details) {
+    try {
+        const query = `
+      INSERT INTO audit_logs (actionType, username, details)
+      VALUES ($1, $2, $3)
+    `;
+        await pool.query(query, [actionType, username, typeof details === 'string' ? details : JSON.stringify(details)]);
+    } catch (err) {
+        console.error('Failed to log audit:', err);
+    }
+}
+
+async function getAuditLogs() {
+    const { rows } = await pool.query('SELECT * FROM audit_logs ORDER BY timestamp DESC');
+    return rows;
+}
+
 // ====== USER OPERATIONS ======
 
 async function authenticateUser(username, password) {
@@ -168,7 +197,7 @@ async function getStockById(id) {
     return mapStock(rows[0]);
 }
 
-async function createStock(stockData) {
+async function createStock(stockData, username) {
     const {
         company,
         tileName,
@@ -195,10 +224,14 @@ async function createStock(stockData) {
     ];
 
     const { rows } = await pool.query(query, values);
-    return mapStock(rows[0]);
+    const newStock = mapStock(rows[0]);
+
+    await logAudit('ADD', username || 'Unknown', `Added stock: ${company} - ${tileName} (${tileSize}), Boxes: ${boxCount}`);
+
+    return newStock;
 }
 
-async function updateStock(id, stockData) {
+async function updateStock(id, stockData, username) {
     const {
         company,
         tileName,
@@ -233,15 +266,29 @@ async function updateStock(id, stockData) {
     ];
 
     const { rows } = await pool.query(query, values);
-    return mapStock(rows[0]);
+    const updatedStock = mapStock(rows[0]);
+
+    await logAudit('UPDATE', username || 'Unknown', `Updated stock ID ${id}: ${company} - ${tileName} (${tileSize})`);
+
+    return updatedStock;
 }
 
-async function deleteStock(id) {
+async function deleteStock(id, username) {
+    // Get stock details before deleting for the log
+    const stock = await getStockById(id);
+
     await pool.query('DELETE FROM stocks WHERE id = $1', [id]);
+
+    if (stock) {
+        await logAudit('DELETE', username || 'Unknown', `Deleted stock: ${stock.company} - ${stock.tileName} (${stock.tileSize})`);
+    } else {
+        await logAudit('DELETE', username || 'Unknown', `Deleted stock ID ${id}`);
+    }
+
     return true;
 }
 
-async function deductStock(company, tileName, tileSize, boxesToDeduct) {
+async function deductStock(company, tileName, tileSize, boxesToDeduct, username) {
     // Find the stock item
     const { rows } = await pool.query(
         'SELECT * FROM stocks WHERE company = $1 AND tileName = $2 AND tileSize = $3',
@@ -270,6 +317,8 @@ async function deductStock(company, tileName, tileSize, boxesToDeduct) {
 
     const { rows: updatedRows } = await pool.query(updateQuery, [newBoxCount, stock.id]);
 
+    await logAudit('DEDUCT', username || 'Unknown', `Deducted ${boxesToDeduct} boxes from ${company} - ${tileName} (${tileSize}). Remaining: ${newBoxCount}`);
+
     return {
         success: true,
         message: `Deducted ${boxesToDeduct} boxes. Remaining: ${newBoxCount} boxes`,
@@ -277,20 +326,7 @@ async function deductStock(company, tileName, tileSize, boxesToDeduct) {
     };
 }
 
-module.exports = {
-    initDatabase,
-    authenticateUser,
-    getAllStocks,
-    getStockById,
-    createStock,
-    updateStock,
-    deleteStock,
-    deductStock,
-    addOrUpdateStock,
-    pool // Export pool for session store
-};
-
-async function addOrUpdateStock(stockData) {
+async function addOrUpdateStock(stockData, username) {
     const {
         company,
         tileName,
@@ -323,9 +359,26 @@ async function addOrUpdateStock(stockData) {
         `;
 
         const { rows: updatedRows } = await pool.query(updateQuery, [newBoxCount, existingStock.id]);
+
+        await logAudit('ADD (MERGE)', username || 'Unknown', `Added ${boxCount} boxes to existing stock: ${company} - ${tileName} (${tileSize}). New Total: ${newBoxCount}`);
+
         return mapStock(updatedRows[0]);
     } else {
         // Stock does not exist, create new
-        return await createStock(stockData);
+        return await createStock(stockData, username);
     }
 }
+
+module.exports = {
+    initDatabase,
+    authenticateUser,
+    getAllStocks,
+    getStockById,
+    createStock,
+    updateStock,
+    deleteStock,
+    deductStock,
+    addOrUpdateStock,
+    getAuditLogs,
+    pool // Export pool for session store
+};

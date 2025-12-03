@@ -41,7 +41,21 @@ function renderLogs(logs) {
     }
 
     logsTableBody.innerHTML = logs.map(log => {
-        const date = new Date(log.timestamp).toLocaleString();
+        // Format date and time in 12-hour format
+        const dateObj = new Date(log.timestamp);
+        const date = dateObj.toLocaleDateString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric'
+        });
+        const time = dateObj.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+        const dateTime = `${date}, ${time}`;
+
         let badgeClass = 'bg-secondary';
 
         // Safety check for actionType
@@ -54,7 +68,7 @@ function renderLogs(logs) {
 
         return `
       <tr>
-        <td>${date}</td>
+        <td>${dateTime}</td>
         <td><strong>${log.username || 'Unknown'}</strong></td>
         <td><span class="badge-action ${badgeClass}">${actionType}</span></td>
         <td>${log.details || ''}</td>

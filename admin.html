@@ -72,6 +72,28 @@
             align-items: center;
             margin-bottom: 20px;
         }
+
+        .btn-back {
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--primary) 0%, #2a4d7a 100%);
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-right: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-back:hover {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, #1e3a5f 100%);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
     </style>
 </head>
 
@@ -82,8 +104,7 @@
         <div class="header-actions">
             <h1>Admin Dashboard - Audit Logs</h1>
             <div>
-                <a href="index.html" class="action-btn"
-                    style="text-decoration: none; background-color: var(--secondary);">Back to Stock</a>
+                <a href="index.html" class="btn-back">← Back to Stock</a>
                 <button id="refreshBtn" class="action-btn">Refresh Logs</button>
             </div>
         </div>
@@ -92,10 +113,10 @@
             <table class="logs-table">
                 <thead>
                     <tr>
-                        <th>Time</th>
-                        <th>User</th>
-                        <th>Action</th>
-                        <th>Details</th>
+                        <th>DATE & TIME</th>
+                        <th>USER</th>
+                        <th>ACTION</th>
+                        <th>DETAILS</th>
                     </tr>
                 </thead>
                 <tbody id="logsTableBody">

@@ -124,6 +124,11 @@ app.get("/api/stocks/:id", requireAuth, async (req, res) => {
 // Get audit logs
 app.get("/api/admin/logs", requireAuth, async (req, res) => {
   try {
+    // Restrict to admin user 'ranjan'
+    if (req.session.username !== 'ranjan') {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
     const logs = await db.getAuditLogs();
     res.json(logs);
   } catch (error) {

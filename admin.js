@@ -4,6 +4,9 @@ fetch('/api/session')
     .then(data => {
         if (!data.authenticated) {
             window.location.href = 'login.html';
+        } else if (data.username !== 'ranjan') {
+            alert('Access Denied: Admin only');
+            window.location.href = 'index.html';
         }
     })
     .catch(err => {

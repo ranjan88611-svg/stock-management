@@ -104,7 +104,7 @@ async function createTables() {
 
 // Insert default users
 async function insertDefaultUsers() {
-    const defaultUsers = ['ranjan', 'yogeesh', 'nidhi', 'sonu'];
+    const defaultUsers = ['yogeesh', 'nidhi', 'sonu'];
     const defaultPassword = '123';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 

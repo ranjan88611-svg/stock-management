@@ -241,6 +241,42 @@ async function deleteStock(id) {
     return true;
 }
 
+async function deductStock(company, tileName, tileSize, boxesToDeduct) {
+    // Find the stock item
+    const { rows } = await pool.query(
+        'SELECT * FROM stocks WHERE company = $1 AND tileName = $2 AND tileSize = $3',
+        [company, tileName, tileSize]
+    );
+
+    if (rows.length === 0) {
+        throw new Error('Stock item not found');
+    }
+
+    const stock = mapStock(rows[0]);
+    const newBoxCount = stock.boxCount - boxesToDeduct;
+
+    if (newBoxCount < 0) {
+        throw new Error(`Cannot deduct ${boxesToDeduct} boxes. Only ${stock.boxCount} boxes available.`);
+    }
+
+    // Update the stock
+    const updateQuery = `
+    UPDATE stocks SET
+      boxCount = $1,
+      updatedAt = CURRENT_TIMESTAMP
+    WHERE id = $2
+    RETURNING *
+  `;
+
+    const { rows: updatedRows } = await pool.query(updateQuery, [newBoxCount, stock.id]);
+
+    return {
+        success: true,
+        message: `Deducted ${boxesToDeduct} boxes. Remaining: ${newBoxCount} boxes`,
+        stock: mapStock(updatedRows[0])
+    };
+}
+
 module.exports = {
     initDatabase,
     authenticateUser,
@@ -249,5 +285,6 @@ module.exports = {
     createStock,
     updateStock,
     deleteStock,
+    deductStock,
     pool // Export pool for session store
 };

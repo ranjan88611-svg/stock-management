@@ -72,6 +72,46 @@
         <button type="button" id="resetButton" class="secondary-btn">Clear</button>
       </form>
     </section>
+    <!-- Delete/Deduct Stock Form -->
+    <section class="card">
+      <h2>Delete Stock</h2>
+      <form id="deleteStockForm">
+        <div class="form-row">
+          <label>Company</label>
+          <select id="deleteCompanySelect" required>
+            <option value="" disabled selected>Select Company</option>
+            <option value="SIMPOLO">SIMPOLO</option>
+            <option value="CREANZA">CREANZA</option>
+            <option value="NAVEEN">NAVEEN</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>Tile Name</label>
+          <input type="text" id="deleteTileName" required placeholder="Search tile name..." list="tileNamesList" />
+          <datalist id="tileNamesList"></datalist>
+        </div>
+
+        <div class="form-row">
+          <label>Size</label>
+          <input type="text" id="deleteTileSize" required placeholder="Search size..." list="tileSizesList" />
+          <datalist id="tileSizesList"></datalist>
+        </div>
+
+        <div class="form-row">
+          <label>Boxes to Deduct</label>
+          <input type="number" id="boxesToDeduct" required min="1" placeholder="Enter boxes to remove" />
+        </div>
+
+        <div id="currentStockInfo" class="stock-info" style="display: none;">
+          <p>Current Stock: <strong id="currentBoxCount">0</strong> boxes</p>
+          <p>After Deduction: <strong id="remainingBoxCount">0</strong> boxes</p>
+        </div>
+
+        <button type="submit" id="deductButton">Deduct Stock</button>
+        <button type="button" id="resetDeleteButton" class="secondary-btn">Clear</button>
+      </form>
+    </section>
 
     <!-- Search -->
     <section class="card">

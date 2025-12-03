@@ -187,6 +187,31 @@ app.delete("/api/stocks/:id", requireAuth, async (req, res) => {
   }
 });
 
+
+// Deduct stock (subtract boxes from existing stock)
+app.post("/api/stocks/deduct", requireAuth, async (req, res) => {
+  try {
+    const { company, tileName, tileSize, boxesToDeduct } = req.body;
+
+    // Validation
+    if (!company || !tileName || !tileSize || !boxesToDeduct) {
+      return res.status(400).json({
+        error: "Company, tile name, size, and boxes to deduct are required"
+      });
+    }
+
+    if (boxesToDeduct <= 0) {
+      return res.status(400).json({ error: "Boxes to deduct must be greater than 0" });
+    }
+
+    const result = await db.deductStock(company, tileName, tileSize, boxesToDeduct);
+    res.json(result);
+  } catch (error) {
+    console.error("Deduct stock error:", error);
+    res.status(500).json({ error: error.message || "Failed to deduct stock" });
+  }
+});
+
 // ====== SERVE HTML PAGES ======
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "login.html"));

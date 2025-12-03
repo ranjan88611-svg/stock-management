@@ -6,6 +6,10 @@ const db = require("./database");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - Required for Render and other cloud platforms
+// This allows Express to correctly read the X-Forwarded-* headers
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -25,7 +29,8 @@ app.use(session({
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production' // Secure in production
+    secure: 'auto', // Auto-detect based on connection (works with proxies)
+    sameSite: 'lax' // Protect against CSRF while allowing normal navigation
   }
 }));
 
@@ -204,9 +209,10 @@ async function startServer() {
     console.log('✅ Database initialized successfully');
 
     // Step 2: Start Express server
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
-      console.log(`📍 Login at: http://localhost:${PORT}/login.html`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📍 Trust proxy: ${app.get('trust proxy')}`);
     });
   } catch (err) {
     console.error('❌ Server initialization failed:', err);

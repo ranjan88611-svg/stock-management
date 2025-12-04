@@ -439,11 +439,11 @@ function updateCurrentStockDisplay() {
     return;
   }
 
-  // Find the stock item
+  // Find the stock item (case-sensitive)
   const stockItem = stocks.find(
     s => s.company === company &&
-      s.tileName.toLowerCase() === tileName.toLowerCase() &&
-      s.tileSize.toLowerCase() === tileSize.toLowerCase()
+      s.tileName === tileName &&
+      s.tileSize === tileSize
   );
 
   if (stockItem) {

@@ -304,7 +304,7 @@ async function deleteStock(id, username) {
 }
 
 async function deductStock(company, tileName, tileSize, boxesToDeduct, username) {
-    // Find the stock item
+    // Find the stock item (case-sensitive)
     const { rows } = await pool.query(
         'SELECT * FROM stocks WHERE company = $1 AND tileName = $2 AND tileSize = $3',
         [company, tileName, tileSize]
@@ -354,7 +354,7 @@ async function addOrUpdateStock(stockData, username) {
         sqftPerBox = 0
     } = stockData;
 
-    // Check if stock exists
+    // Check if stock exists (case-sensitive)
     const { rows } = await pool.query(
         'SELECT * FROM stocks WHERE company = $1 AND tileName = $2 AND tileSize = $3',
         [company, tileName, tileSize]

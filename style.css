@@ -230,6 +230,13 @@ button {
   overflow-x: auto;
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  /* Rotate to move scrollbar to top */
+  transform: rotateX(180deg);
+}
+
+.table-wrapper table {
+  /* Counter-rotate to keep table upright */
+  transform: rotateX(180deg);
 }
 
 table {

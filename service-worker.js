@@ -1,3 +1,4 @@
+// UPDATE THIS VERSION to trigger an update for all users (e.g. v1 -> v2)
 const CACHE_NAME = 'stock-manager-v1';
 const ASSETS_TO_CACHE = [
     '/',
@@ -10,7 +11,8 @@ const ASSETS_TO_CACHE = [
     '/admin.js',
     '/manifest.json',
     '/icon-192.png',
-    '/icon-512.png'
+    '/icon-512.png',
+    '/bg.png'
 ];
 
 // Install Event: Cache files

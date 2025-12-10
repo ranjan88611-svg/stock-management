@@ -66,10 +66,10 @@ function renderLogs(logs) {
         // Match styles from style.css logic or use specific colors
         const actionType = log.actiontype || log.actionType || 'UNKNOWN';
 
-        if (actionType.includes('ADD')) badgeStyle = 'background-color: #2f855a; color: white; border-color: #2f855a;';
-        else if (actionType === 'UPDATE') badgeStyle = 'background-color: #b8860b; color: white; border-color: #b8860b;';
-        else if (actionType.includes('DELETE')) badgeStyle = 'background-color: #c53030; color: white; border-color: #c53030;';
-        else if (actionType === 'DEDUCT') badgeStyle = 'background-color: #dd6b20; color: white; border-color: #dd6b20;';
+        if (actionType.includes('ADD')) badgeStyle = 'background: #28a745; color: white; border-color: #28a745;';
+        else if (actionType === 'UPDATE') badgeStyle = 'background: #ffc107; color: #333; border-color: #ffc107;';
+        else if (actionType.includes('DELETE')) badgeStyle = 'background: #dc3545; color: white; border-color: #dc3545;';
+        else if (actionType === 'DEDUCT') badgeStyle = 'background: #fd7e14; color: white; border-color: #fd7e14;';
 
         return `
       <tr>

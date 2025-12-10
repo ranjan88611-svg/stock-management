@@ -1,5 +1,6 @@
 // UPDATE THIS VERSION to trigger an update for all users (e.g. v1 -> v2)
-const CACHE_NAME = 'stock-manager-v1';
+const CACHE_NAME = 'stock-manager-v2';
+
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -17,6 +18,7 @@ const ASSETS_TO_CACHE = [
 
 // Install Event: Cache files
 self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Force activate
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -36,7 +38,7 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim()) // Claim immediately
     );
 });
 

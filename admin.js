@@ -60,26 +60,56 @@ function renderLogs(logs) {
         });
         const dateTime = `${date}, ${time}`;
 
-        let badgeClass = 'bg-secondary';
+        let badgeClass = 'badge';
+        let badgeStyle = '';
 
-        // Safety check for actionType
+        // Match styles from style.css logic or use specific colors
         const actionType = log.actiontype || log.actionType || 'UNKNOWN';
 
-        if (actionType.includes('ADD')) badgeClass = 'bg-add';
-        else if (actionType === 'UPDATE') badgeClass = 'bg-update';
-        else if (actionType === 'DELETE') badgeClass = 'bg-delete';
-        else if (actionType === 'DEDUCT') badgeClass = 'bg-deduct';
+        if (actionType.includes('ADD')) badgeStyle = 'background-color: #2f855a; color: white; border-color: #2f855a;';
+        else if (actionType === 'UPDATE') badgeStyle = 'background-color: #b8860b; color: white; border-color: #b8860b;';
+        else if (actionType.includes('DELETE')) badgeStyle = 'background-color: #c53030; color: white; border-color: #c53030;';
+        else if (actionType === 'DEDUCT') badgeStyle = 'background-color: #dd6b20; color: white; border-color: #dd6b20;';
 
         return `
       <tr>
         <td>${dateTime}</td>
         <td><strong>${log.username || 'Unknown'}</strong></td>
-        <td><span class="badge-action ${badgeClass}">${actionType}</span></td>
+        <td><span class="badge" style="${badgeStyle}">${actionType}</span></td>
         <td>${log.details || ''}</td>
+        <td>
+            <button class="action-btn delete-btn" onclick="deleteLog(${log.id})">Delete</button>
+        </td>
       </tr>
     `;
     }).join('');
 }
+
+// Global delete function
+window.deleteLog = async function (id) {
+    if (!confirm("Are you sure you want to delete this specific log entry?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/logs/${id}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Remove row locally or reload
+            // Optimistic update could be done here, but reload is safer
+            loadLogs();
+        } else {
+            alert('Failed to delete log: ' + data.error);
+        }
+    } catch (err) {
+        console.error('Delete log error:', err);
+        alert('Network error while deleting log');
+    }
+};
 
 // Filter logs based on search input
 searchInput.addEventListener('input', (e) => {

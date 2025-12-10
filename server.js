@@ -153,6 +153,23 @@ app.delete("/api/admin/logs", requireAuth, async (req, res) => {
   }
 });
 
+// Delete single audit log
+app.delete("/api/admin/logs/:id", requireAuth, async (req, res) => {
+  try {
+    // Restrict to admin user 'ranjan'
+    if (req.session.username !== 'ranjan') {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    const id = parseInt(req.params.id);
+    await db.deleteAuditLog(id);
+    res.json({ success: true, message: "Log deleted successfully" });
+  } catch (error) {
+    console.error("Delete log error:", error);
+    res.status(500).json({ error: "Failed to delete log" });
+  }
+});
+
 // Create new stock
 app.post("/api/stocks", requireAuth, async (req, res) => {
   try {

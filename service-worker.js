@@ -1,5 +1,5 @@
 // UPDATE THIS VERSION to trigger an update for all users (e.g. v1 -> v2)
-const CACHE_NAME = 'stock-manager-v2';
+const CACHE_NAME = 'stock-manager-v3';
 
 const ASSETS_TO_CACHE = [
     '/',

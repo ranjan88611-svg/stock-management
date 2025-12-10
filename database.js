@@ -181,6 +181,11 @@ async function clearAuditLogs() {
     return true;
 }
 
+async function deleteAuditLog(id) {
+    await pool.query('DELETE FROM audit_logs WHERE id = $1', [id]);
+    return true;
+}
+
 // ====== USER OPERATIONS ======
 
 async function authenticateUser(username, password) {
@@ -401,5 +406,6 @@ module.exports = {
     addOrUpdateStock,
     getAuditLogs,
     clearAuditLogs,
+    deleteAuditLog,
     pool // Export pool for session store
 };

@@ -147,10 +147,17 @@ function showError(message) {
 }
 
 function clearForm() {
+  const previousCompany = companySelect.value;
   stockForm.reset();
   editIndex = null;
   saveButton.textContent = "Add Stock";
-  companySelect.value = "";
+
+  // Restore company if selected (Sticky Selection)
+  if (previousCompany) {
+    companySelect.value = previousCompany;
+  } else {
+    companySelect.value = "";
+  }
 }
 
 // ----- Form Submit (Add / Update) -----
@@ -522,8 +529,16 @@ resetDeleteButton.addEventListener("click", () => {
 });
 
 function clearDeleteForm() {
+  const previousCompany = deleteCompanySelect.value;
   deleteStockForm.reset();
   currentStockInfo.style.display = "none";
-  tileNamesList.innerHTML = "";
-  tileSizesList.innerHTML = "";
+
+  // Restore company if selected (Sticky Selection)
+  if (previousCompany) {
+    deleteCompanySelect.value = previousCompany;
+    populateDeleteFormOptions();
+  } else {
+    tileNamesList.innerHTML = "";
+    tileSizesList.innerHTML = "";
+  }
 }

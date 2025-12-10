@@ -105,29 +105,39 @@
     <div class="admin-container">
         <div class="header-actions">
             <h1>Admin Dashboard - Audit Logs</h1>
-            <div>
-                <a href="index.html" class="btn-back">← Back to Stock</a>
-                <button id="refreshBtn" class="action-btn">Refresh Logs</button>
-            </div>
+            <a href="index.html" class="btn-back">← Back to Stock</a>
         </div>
+    </div>
 
-        <div class="card">
-            <table class="logs-table">
-                <thead>
-                    <tr>
-                        <th>DATE & TIME</th>
-                        <th>USER</th>
-                        <th>ACTION</th>
-                        <th>DETAILS</th>
-                    </tr>
-                </thead>
-                <tbody id="logsTableBody">
-                    <tr>
-                        <td colspan="4" style="text-align: center;">Loading logs...</td>
-                    </tr>
-                </tbody>
-            </table>
+    <!-- Search and Actions -->
+    <div style="margin-bottom: 15px; display: flex; gap: 10px; justify-content: space-between;">
+        <input type="text" id="searchLogs" placeholder="Search by user, action, date, or details..."
+            style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; flex: 1; font-size: 16px;">
+        <div style="display: flex; gap: 10px;">
+            <button id="refreshBtn" class="action-btn">Refresh Logs</button>
+            <button id="clearHistoryBtn" class="action-btn" style="background-color: #dc3545; color: white;">Clear
+                History</button>
         </div>
+    </div>
+    </div>
+
+    <div class="card">
+        <table class="logs-table">
+            <thead>
+                <tr>
+                    <th>DATE & TIME</th>
+                    <th>USER</th>
+                    <th>ACTION</th>
+                    <th>DETAILS</th>
+                </tr>
+            </thead>
+            <tbody id="logsTableBody">
+                <tr>
+                    <td colspan="4" style="text-align: center;">Loading logs...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
     </div>
 
     <script src="admin.js"></script>

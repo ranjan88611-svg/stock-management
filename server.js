@@ -137,6 +137,22 @@ app.get("/api/admin/logs", requireAuth, async (req, res) => {
   }
 });
 
+// Clear audit logs
+app.delete("/api/admin/logs", requireAuth, async (req, res) => {
+  try {
+    // Restrict to admin user 'ranjan'
+    if (req.session.username !== 'ranjan') {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    await db.clearAuditLogs();
+    res.json({ success: true, message: "Audit logs cleared successfully" });
+  } catch (error) {
+    console.error("Clear logs error:", error);
+    res.status(500).json({ error: "Failed to clear audit logs" });
+  }
+});
+
 // Create new stock
 app.post("/api/stocks", requireAuth, async (req, res) => {
   try {

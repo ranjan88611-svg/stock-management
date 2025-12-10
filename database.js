@@ -176,6 +176,11 @@ async function getAuditLogs() {
     return rows;
 }
 
+async function clearAuditLogs() {
+    await pool.query('TRUNCATE TABLE audit_logs RESTART IDENTITY');
+    return true;
+}
+
 // ====== USER OPERATIONS ======
 
 async function authenticateUser(username, password) {
@@ -395,5 +400,6 @@ module.exports = {
     deductStock,
     addOrUpdateStock,
     getAuditLogs,
+    clearAuditLogs,
     pool // Export pool for session store
 };

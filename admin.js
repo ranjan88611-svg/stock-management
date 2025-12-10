@@ -16,6 +16,10 @@ fetch('/api/session')
 
 const logsTableBody = document.getElementById('logsTableBody');
 const refreshBtn = document.getElementById('refreshBtn');
+const searchInput = document.getElementById('searchLogs');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+let allLogs = []; // Store logs for client-side filtering
 
 async function loadLogs() {
     try {
@@ -26,8 +30,8 @@ async function loadLogs() {
             throw new Error('Failed to fetch logs');
         }
 
-        const logs = await response.json();
-        renderLogs(logs);
+        allLogs = await response.json();
+        renderLogs(allLogs);
     } catch (error) {
         console.error('Error loading logs:', error);
         logsTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: red;">Error loading logs: ${error.message}</td></tr>`;
@@ -76,6 +80,57 @@ function renderLogs(logs) {
     `;
     }).join('');
 }
+
+// Filter logs based on search input
+searchInput.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase().trim();
+
+    if (!term) {
+        renderLogs(allLogs);
+        return;
+    }
+
+    const filtered = allLogs.filter(log => {
+        // Prepare searchable strings
+        const dateObj = new Date(log.timestamp);
+        const dateStr = dateObj.toLocaleDateString(); // e.g., 12/10/2025
+        const user = (log.username || '').toLowerCase();
+        const action = (log.actiontype || log.actionType || '').toLowerCase();
+        const details = (log.details || '').toLowerCase();
+
+        return user.includes(term) ||
+            action.includes(term) ||
+            details.includes(term) ||
+            dateStr.includes(term);
+    });
+
+    renderLogs(filtered);
+});
+
+// Clear History
+clearHistoryBtn.addEventListener('click', async () => {
+    if (!confirm("Are you sure you want to clear the ENTIRE audit history? This cannot be undone.")) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/logs', {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(data.message);
+            loadLogs(); // Reload (should be empty)
+        } else {
+            alert('Failed to clear history: ' + data.error);
+        }
+    } catch (err) {
+        console.error('Clear history error:', err);
+        alert('Network error while clearing history');
+    }
+});
 
 refreshBtn.addEventListener('click', loadLogs);
 

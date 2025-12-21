@@ -3,33 +3,49 @@ let stocks = [];
 let editIndex = null; // null means "add mode", number means "edit mode"
 let currentCompanyFilter = "ALL";
 
-// ----- Check Authentication -----
-fetch('/api/session')
-  .then(res => res.json())
-  .then(data => {
-    if (!data.authenticated) {
+// ----- Initialization & Loading Screen -----
+window.addEventListener("DOMContentLoaded", async () => {
+  const loadingOverlay = document.getElementById('loadingOverlay');
+
+  try {
+    // 1. Check Authentication
+    const sessionRes = await fetch('/api/session');
+    const sessionData = await sessionRes.json();
+
+    if (!sessionData.authenticated) {
       window.location.href = 'login.html';
-    } else {
-      // Show/Hide Admin Button
-      const adminBtn = document.querySelector('.admin-btn');
-      if (adminBtn) {
-        if (data.username === 'ranjan') {
-          adminBtn.style.display = 'inline-flex';
-        } else {
-          adminBtn.style.display = 'none';
-        }
+      return; // Stop execution, let redirect happen (loader stays)
+    }
+
+    // Show/Hide Admin Button based on user
+    const adminBtn = document.querySelector('.admin-btn');
+    if (adminBtn) {
+      if (sessionData.username === 'ranjan') {
+        adminBtn.style.display = 'inline-flex';
+      } else {
+        adminBtn.style.display = 'none';
       }
     }
-  })
-  .catch(err => {
-    console.error('Session check failed:', err);
-    window.location.href = 'login.html';
-  });
 
-// ----- Load stocks from API on page load -----
-window.addEventListener("DOMContentLoaded", async () => {
-  await loadStocksFromAPI();
-  renderTable();
+    // 2. Load stocks from API
+    await loadStocksFromAPI();
+    renderTable();
+
+  } catch (err) {
+    console.error('Initialization failed:', err);
+    // If session check fails (e.g. network error), redirect to login
+    window.location.href = 'login.html';
+  } finally {
+    // 3. Hide Loader
+    // We hide it even if there was an error loading stocks, so the user can at least see the UI (and maybe retry)
+    // Unless we redirected (session check failed)
+    if (loadingOverlay) {
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        loadingOverlay.classList.add('hidden');
+      }, 500);
+    }
+  }
 
   // Setup logout button
   const logoutBtn = document.getElementById("logoutButton");
